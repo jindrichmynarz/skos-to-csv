@@ -48,6 +48,34 @@
               path
               (recur (conj path parent-link) (conj visited-nodes parent-link))))))
 
+(defn- create-prolog
+  "Create Linked CSV prolog based on @data and @language"
+  [data language]
+  (let [max-columns (dec (reduce max (map count data)))
+        header (conj (map #(str "level" % "ConceptLabel") (range 1 max-columns)) "@id" "#")
+        lang-header (conj (repeat (dec max-columns) language) "" "lang")]
+    (list lang-header header)))
+
+(comment
+  (def model (RDFDataMgr/loadModel "cpv-2008.ttl"))
+  (def paths (get-paths model "en"))
+  (def parent-links (get-parents paths))
+  (def labels (get-labels paths))
+  (def concept->path (comp flatten
+                           (juxt identity
+                                 (comp (partial map labels)
+                                 (partial path-to-top parent-links)))))
+  (def data (map concept->path (keys labels)))
+  (take 1 data)
+
+  (def prolog (create-prolog data :language "en"))
+  (def max-columns (dec (reduce max (map count data))))
+  (def header (conj (map #(str "level" % "ConceptLabel") (range 1 max-columns)) "@id" "#"))
+  (def lang-header (conj (repeat max-columns "en") "" "lang"))
+  (def full (into (map #(conj % "") data) (list lang-header header)))
+  (take 4 full)
+  )
+
 ; Public functions
 
 (defn convert
@@ -58,9 +86,12 @@
         paths (get-paths model language)
         parent-links (get-parents paths)
         labels (get-labels paths)
-        concept->path (comp flatten
-                            (juxt identity
-                                  (comp (partial map labels)
-                                  (partial path-to-top parent-links))))]
+        concept->path (comp #(conj % "")
+                            (comp flatten
+                                  (juxt identity
+                                        (comp (partial map labels)
+                                        (partial path-to-top parent-links)))))
+        data (sort-by first (map concept->path (keys labels)))
+        prolog (create-prolog data language)]
     (with-open [out-file (writer output)]
-      (write-csv out-file (map concept->path (keys labels))))))
+      (write-csv out-file (into data prolog)))))
