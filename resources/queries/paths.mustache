@@ -1,0 +1,20 @@
+{{!
+@param string $language  language ISO 639-2 language code
+}}
+
+{{> prefixes}}
+
+SELECT DISTINCT ?concept1 ?concept1Label ?concept2 ?concept2Label
+WHERE {
+  VALUES ?narrowerProperty {
+    skos:narrower
+    skos:narrowerTransitive
+  }
+  ?concept1 a skos:Concept ;
+    skos:prefLabel ?concept1Label .
+  FILTER (langMatches(lang(?concept1Label), "{{language}}"))
+
+  ?concept1 ?narrowerProperty ?concept2 .
+  ?concept2 skos:prefLabel ?concept2Label .
+  FILTER (langMatches(lang(?concept2Label), "{{language}}"))
+}

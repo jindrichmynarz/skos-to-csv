@@ -1,0 +1,33 @@
+{{!
+@param Vector<Map<Keyword, int>> depths   Keywords :base and :inc for basic and incremented depth levels.
+@param string                    language ISO 639-2 language code
+}}
+
+{{> prefixes}}
+
+SELECT DISTINCT 
+  {{#depths}}
+  ?concept{{.}} ?concept{{.}}Label
+  {{/depths}}
+WHERE {
+  VALUES ?narrowerProperty {
+    skos:narrower
+    skos:narrowerTransitive
+  }
+  ?concept1 a skos:Concept ;
+    skos:topConceptOf [] ;
+    skos:prefLabel ?concept1Label .
+  FILTER (langMatches(lang(?concept1Label), "{{language}}"))
+  
+  {{#depth-pairs}}
+  OPTIONAL {
+    ?concept{{base}} ?narrowerProperty ?concept{{inc}} .
+    ?concept{{inc}} skos:prefLabel ?concept{{inc}}Label .
+    FILTER (langMatches(lang(?concept{{inc}}Label), "{{language}}"))
+  {{/depth-pairs}}
+  {{#depth-pairs}}
+  }
+  {{/depth-pairs}}
+}
+ORDER BY ASC(?concept1)
+LIMIT 10

@@ -1,0 +1,11 @@
+{{>prefixes}}
+
+SELECT (COUNT(?intermediate) AS ?pathLength)
+WHERE {
+  ?broader skos:topConceptOf [] ;
+    (skos:narrower|skos:narrowerTransitive)* ?intermediate .
+  ?intermediate (skos:narrower|skos:narrowerTransitive)+ ?narrower .
+}
+GROUP BY ?broader ?narrower
+ORDER BY DESC(?pathLength)
+LIMIT 1

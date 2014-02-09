@@ -1,0 +1,33 @@
+{{!
+@param Array<int> depths
+@param function   inc
+@param string     language
+}}
+
+{{> prefixes}}
+
+SELECT DISTINCT 
+  {{#depths}}
+  ?concept{{.}} ?concept{{.}}Label
+  {{/depths}}
+WHERE {
+  VALUES ?narrowerProperty {
+    skos:narrower
+    skos:narrowerTransitive
+  }
+  ?concept1 a skos:Concept ;
+    skos:topConceptOf [] ;
+    skos:prefLabel ?concept1Label .
+  FILTER (langMatches(lang(?concept1Label), {{language}}))
+  
+  {{#depths}}
+    OPTIONAL {
+      ?concept{{.}} ?narrowerProperty ?concept{{#inc}}{{.}}{{/inc}} .
+      ?concept{{#inc}}{{.}}{{/inc}} skos:prefLabel ?concept{{#inc}}{{.}}{{/inc}}Label .
+      FILTER (langMatches(lang(?narrowerConcept{{#inc}}{{.}}{{/inc}}Label), {{language}}))
+  {{/depths}}
+  {{#depths}}
+    }
+  {{/depths}}
+}
+ORDER BY ASC(?concept1)
