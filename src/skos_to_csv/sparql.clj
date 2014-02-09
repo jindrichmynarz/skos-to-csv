@@ -36,6 +36,18 @@
         (throw (Exception. (str "Query file " query " doesn't exist.")))))
     query-file))
 
+(defn- process-select-binding
+  "Process SPARQL select binding of @var-name from @solution into string"
+  [^QuerySolution solution
+   ^String var-name]
+  (RDF->string (.get solution var-name)))
+
+(defn- process-select-solution
+  "Process SPARQL SELECT @solution"
+  [result-vars
+   ^QuerySolution solution]
+  (mapv (partial process-select-binding solution) (iterator-seq (.varNames solution))))
+
 ; Public functions
 
 (defn render-query
@@ -61,18 +73,6 @@
   (render-query query-path
                 :data data
                 :partials (distinct (conj partials :prefixes))))
-
-(defn- process-select-binding
-  "Process SPARQL select binding of @var-name from @solution into string"
-  [^QuerySolution solution
-   ^String var-name]
-  (RDF->string (.get solution var-name)))
-
-(defn- process-select-solution
-  "Process SPARQL SELECT @solution"
-  [result-vars
-   ^QuerySolution solution]
-  (mapv (partial process-select-binding solution) (iterator-seq (.varNames solution))))
 
 (defn execute-query
   "Execute a SPARQL query (@query-string) on an RDF graph (@model).
