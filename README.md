@@ -1,10 +1,10 @@
 # skos-to-csv
 
-Converts SKOS concept scheme to CSV.
+Converts [SKOS](http://www.w3.org/TR/skos-reference/) concept scheme to [Linked CSV](http://jenit.github.io/linked-csv/).
 
 ## Usage
 
-FIXME
+`skos2csv --help`
 
 ## License
 

@@ -1,10 +1,13 @@
 (ns skos-to-csv.core
   (:require [clojure.tools.cli :refer [parse-opts]]
+            [taoensso.timbre :as timbre]
             [clojure.java.io :refer [as-file]]
-            [clojure.string :as string]
-            [skos-to-csv.util :refer [exit]]
+            [skos-to-csv.util :refer [join-file-path exit]]
             [skos-to-csv.convert :refer [convert]])
   (:gen-class))
+
+(timbre/set-config! [:appenders :spit :enabled?] true)
+(timbre/set-config! [:shared-appender-config :spit-filename] (join-file-path "log" "logger.log"))
 
 (def cli-options
   [["-i" "--input RDF" "Path to input RDF file"
@@ -19,7 +22,7 @@
 (defn- error-msg
   [errors]
   (str "The following errors occurred while parsing your command:\n\n"
-       (string/join \newline errors)))
+       (clojure.string/join \newline errors)))
 
 (defn- usage
   [options-summary]
@@ -29,7 +32,7 @@
         ""
         "Options:"
         options-summary]
-       (string/join \newline)))
+       (clojure.string/join \newline)))
 
 (defn -main
   [& args]

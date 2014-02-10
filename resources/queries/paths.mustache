@@ -1,27 +1,17 @@
 {{!
-@param string $language  language ISO 639-2 language code
 @param IRI    $scheme    URI of skos:ConceptScheme to convert
 }}
 
 {{> prefixes}}
 
-SELECT DISTINCT ?concept1 ?concept1Label ?concept2 ?concept2Label
+SELECT DISTINCT ?broader ?narrower 
 WHERE {
   VALUES ?narrowerProperty {
     skos:narrower
     skos:narrowerTransitive
   }
-  ?concept1 a skos:Concept .
+  ?broader ?narrowerProperty ?narrower . 
   {{#scheme}}
-  ?concept1 skos:inScheme <{{scheme}}> .
+  <{{scheme}}> ^skos:inScheme ?broader, ?narrower .
   {{/scheme}}
-  ?concept1 skos:prefLabel ?concept1Label .
-  FILTER (langMatches(lang(?concept1Label), "{{language}}"))
-
-  ?concept1 ?narrowerProperty ?concept2 .
-  {{#scheme}}
-  ?concept2 skos:inScheme <{{scheme}}> .
-  {{/scheme}}
-  ?concept2 skos:prefLabel ?concept2Label .
-  FILTER (langMatches(lang(?concept2Label), "{{language}}"))
 }

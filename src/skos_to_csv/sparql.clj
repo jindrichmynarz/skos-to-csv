@@ -1,9 +1,10 @@
 (ns skos-to-csv.sparql
+  (:import [com.hp.hpl.jena.query Query QueryExecutionFactory QueryFactory QuerySolution]
+           [com.hp.hpl.jena.rdf.model Literal])
   (:require [clojure.java.io :as io] 
             [incanter.core :as incanter]
-            [clostache.parser :refer [render-resource]])
-  (:import [com.hp.hpl.jena.query Query QueryExecutionFactory QueryFactory QuerySolution]
-           [com.hp.hpl.jena.rdf.model Literal]))
+            [clostache.parser :refer [render-resource]]
+            [skos-to-csv.util :refer [join-file-path]]))
 
 ; Multimethods
 
@@ -15,10 +16,6 @@
 (defmethod RDF->string :default [RDF] (.toString RDF))
 
 ; Private functions
-
-(defn- join-file-path
-  [& args]
-  (clojure.string/join java.io.File/separator args))
 
 (defn- get-query-path
   "Returns resource path for @query-path vector"
@@ -77,7 +74,7 @@
 (defn execute-query
   "Execute a SPARQL query (@query-string) on an RDF graph (@model).
   The query results may be passed to optional @callback function."
-  [query-string model & [callback]]
+  [query-string model]
   (let [query (QueryFactory/create query-string)
         query-type (.getQueryType query)
         qexec (QueryExecutionFactory/create query model)]
