@@ -1,0 +1,10 @@
+{{> prefixes}}
+
+SELECT DISTINCT ?scheme
+WHERE {
+  {
+    ?scheme a skos:ConceptScheme .
+  } UNION {
+    [] skos:inScheme ?scheme .
+  }
+}

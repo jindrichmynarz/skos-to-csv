@@ -3,18 +3,35 @@
            [org.apache.jena.riot RDFDataMgr])
   (:require [clojure.tools.logging :as log]
             [clojure.java.io :refer [writer]]
+            [clojure.string :refer [join]]
             [clojure.data.csv :refer [write-csv]]
             [incanter.core :as incanter]
+            [skos-to-csv.util :refer [exit]]
             [skos-to-csv.sparql :as sparql])) 
 
 ; Private functions
 
+(defn- has-many-concept-schemes?
+  "If @model contains more than 1 instance of skos:ConceptScheme
+   returns prompt to user to specify skos:ConceptScheme."
+  [^Model model]
+  (let [query-string (sparql/render-sparql "concept_schemes")
+        concept-schemes (incanter/$ :scheme (sparql/execute-query query-string model))]
+    (if (> (count concept-schemes) 1)
+        (str "While no skos:ConceptScheme was specified, "
+             "the provided data contains more than 1 skos:ConceptScheme."
+             \newline
+             "Please provide one of the following URIs of skos:ConceptSchemes "
+             "using the -s parameter:"
+             \newline
+             (join \newline (map (partial str "  ") concept-schemes))))))
+
 (defn- get-paths
   "Returns hierarchical paths (pairs) in @model.
    Concept labels are filtered by @language."
-  [^Model model
-   ^String language]
-  (let [query-string (sparql/render-sparql "paths" :data {:language language})]
+  [^Model model & {:keys [language scheme]}]
+  (let [query-string (sparql/render-sparql "paths" :data {:language language
+                                                          :scheme scheme})]
     (sparql/execute-query query-string model)))
 
 (defn- get-labels
@@ -58,7 +75,8 @@
 
 (comment
   (def model (RDFDataMgr/loadModel "cpv-2008.ttl"))
-  (def paths (get-paths model "en"))
+  (def concept-schemes (has-many-concept-schemes? model))
+  (def paths (get-paths model :language "en"))
   (def parent-links (get-parents paths))
   (def labels (get-labels paths))
   (def concept->path (comp flatten
@@ -80,10 +98,13 @@
 
 (defn convert
   "Execute the conversion of SKOS at @file-path to Linked CSV"
-  [file-path & {:keys [language output]}]
+  [file-path & {:keys [language output scheme]}]
   (let [_ (log/info (str "Converting " file-path "..."))
         model (RDFDataMgr/loadModel file-path)
-        paths (get-paths model language)
+        _ (if-not scheme (if-let [concept-scheme-prompt (has-many-concept-schemes? model)]
+                           (exit 0 concept-scheme-prompt)))
+        paths (get-paths model :language language
+                               :scheme scheme)
         parent-links (get-parents paths)
         labels (get-labels paths)
         concept->path (comp #(conj % "")

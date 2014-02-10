@@ -1,0 +1,16 @@
+{{!
+@param string $language  language ISO 639-2 language code
+@param IRI    $scheme    URI of skos:ConceptScheme to convert
+}}
+
+{{> prefixes}}
+
+SELECT DISTINCT ?concept ?label
+WHERE {
+  ?concept a skos:Concept .
+  {{#scheme}}
+  ?concept skos:inScheme <{{scheme}}> .
+  {{/scheme}}
+  ?concept skos:prefLabel ?label .
+  FILTER (langMatches(lang(?label), "{{language}}"))
+}
