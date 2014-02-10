@@ -1,6 +1,6 @@
 (defproject skos-to-csv "0.1.0-SNAPSHOT"
-  :description "Converting SKOS to Linked CSV"
-  :url "http://example.com/FIXME"
+  :description "Convert SKOS in RDF to Linked CSV"
+  :url "http://github.com/jindrichmynarz/skos-to-csv"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.5.1"]

@@ -1,7 +1,7 @@
 (ns skos-to-csv.sparql
   (:import [com.hp.hpl.jena.query Query QueryExecutionFactory QueryFactory QuerySolution]
            [com.hp.hpl.jena.rdf.model Literal])
-  (:require [clojure.java.io :as io] 
+  (:require [clojure.java.io :refer [resource]] 
             [incanter.core :as incanter]
             [clostache.parser :refer [render-resource]]
             [skos-to-csv.util :refer [join-file-path]]))
@@ -26,7 +26,7 @@
   "Opens @query-path filename"
   [query-file-name]
   (let [query (get-query-path query-file-name)
-        query-file (io/resource query)]
+        query-file (resource query)]
     (try
       (assert ((complement nil?) query-file))
       (catch AssertionError e
@@ -43,7 +43,8 @@
   "Process SPARQL SELECT @solution"
   [result-vars
    ^QuerySolution solution]
-  (mapv (partial process-select-binding solution) (iterator-seq (.varNames solution))))
+  (mapv (partial process-select-binding solution)
+        (iterator-seq (.varNames solution))))
 
 ; Public functions
 
@@ -72,19 +73,17 @@
                 :partials (distinct (conj partials :prefixes))))
 
 (defn execute-query
-  "Execute a SPARQL query (@query-string) on an RDF graph (@model).
-  The query results may be passed to optional @callback function."
-  [query-string model]
+  "Execute a SPARQL query (@query-string) on an RDF graph (@dataset)."
+  [query-string dataset]
   (let [query (QueryFactory/create query-string)
         query-type (.getQueryType query)
-        qexec (QueryExecutionFactory/create query model)]
+        qexec (QueryExecutionFactory/create query dataset)]
     (try
       (condp = query-type
         Query/QueryTypeAsk (.execAsk qexec)
         Query/QueryTypeSelect (doall (let [results (.execSelect qexec)
                                            result-vars (.getResultVars results)]
-                                       (incanter/dataset result-vars
-                                                         (mapv
-                                                           (partial process-select-solution result-vars)
-                                                           (iterator-seq results))))))
+                                          (incanter/dataset result-vars
+                                                            (mapv (partial process-select-solution result-vars)
+                                                                  (iterator-seq results))))))
       (finally (.close qexec)))))
