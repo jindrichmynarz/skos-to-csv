@@ -7,12 +7,24 @@
             [clojure.string :refer [join]]
             [clojure.data.csv :refer [write-csv]]
             [incanter.core :as incanter]
-            [skos-to-csv.util :refer [exit list-directory]]
+            [skos-to-csv.util :refer [directory-exists? exit list-directory]]
             [skos-to-csv.sparql :as sparql])) 
 
 (def tdb-directory "db")
 
 ; Private functions
+
+(defn- init-dataset
+  "Creates TDB dataset in @tdb-directory and loads an RDF file on @file-path into it.
+   Returns the dataset."
+  [^String tdb-directory
+   ^String file-path]
+  {:pre [(not (directory-exists? tdb-directory))]}
+  (let [_ (.mkdir (java.io.File. tdb-directory))
+        dataset (TDBFactory/createDataset tdb-directory)]
+    (do (RDFDataMgr/read dataset file-path)
+        (timbre/debug "Dataset loaded.")
+        dataset)))
 
 (defn- has-many-concept-schemes?
   "If @model contains more than 1 instance of skos:ConceptScheme
@@ -71,34 +83,25 @@
     (list lang-header header)))
 
 (defn- delete-tdb-files
-  "Delete all files in TDB directory"
-  [tdb-directory]
-  (dorun (map delete-file
-              (list-directory tdb-directory))))
+  "Delete TDB directory"
+  [^String tdb-directory]
+  (do (dorun (map delete-file
+                  (list-directory tdb-directory)))
+      (delete-file (java.io.File. tdb-directory))))
 
 (defn- tdb-directory-empty?
   "Check if TDB directory is empty"
-  [tdb-directory]
+  [^String tdb-directory]
   (empty? (list-directory tdb-directory)))
-
-(comment
-  (def dataset (TDBFactory/createDataset "db"))
-  (RDFDataMgr/read dataset "cpv-2008.ttl")
-  (def query (sparql/render-sparql "paths" :data {:scheme "http://linked.opendata.cz/resource/concept-scheme/cpv-2008"}))
-  (def results (sparql/execute-query query dataset))
-  (count (:rows results))
-  )
 
 ; Public functions
 
 (defn convert
   "Execute the conversion of SKOS at @file-path to Linked CSV"
-  [file-path & {:keys [language output scheme]}]
-  {:pre [(tdb-directory-empty? tdb-directory)]}
+  [^String file-path & {:keys [language output scheme]}]
   (try
     (let [_ (timbre/info (str "Converting " file-path "..."))
-          dataset (TDBFactory/createDataset tdb-directory)
-          _ (RDFDataMgr/read dataset file-path)
+          dataset (init-dataset tdb-directory file-path)
           _ (timbre/debug "Dataset loaded.")
           _ (if-not scheme (has-many-concept-schemes? dataset))
           _ (timbre/debug "Getting parents...")
